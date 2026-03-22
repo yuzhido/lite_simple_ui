@@ -13,14 +13,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(title: const Text('UI组件示例使用分类主页')),
       body: SingleChildScrollView(
-        child: Column(
-          children: [
-            //
-            BasicFormInfo(),
-            UploadFile(),
-            DataShow(),
-          ],
-        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [BasicFormInfo(), UploadFile(), DataShow()]),
       ),
     );
   }

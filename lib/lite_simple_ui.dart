@@ -1,5 +1,5 @@
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
-}
+/// Lite Simple UI - A simple UI component library for Flutter
+library lite_simple_ui;
+
+// TreeSelect Component
+export 'src/index.dart';
