@@ -247,7 +247,13 @@ class _ChooseTreePageState extends State<ChooseTreePage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            ChooseTree(customContentUi: const Text('自定义内容'), title: '自定义选中', data: _treeData, value: _selectedValues, onMultiConfirm: _handleMultiConfirm),
+            ChooseTree(
+              customContentBuilder: (context, selectedValues) => const Text('自定义内容'),
+              title: '自定义选中',
+              data: _treeData,
+              value: _selectedValues,
+              onMultiConfirm: _handleMultiConfirm,
+            ),
             const SizedBox(height: 20),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),

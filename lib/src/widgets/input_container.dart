@@ -24,10 +24,20 @@ class InputContainer extends StatelessWidget {
   /// 选中的值列表（用于标签模式）
   final List<String>? selectedValues;
 
-  /// 自定义组件
-  final Widget? customContentUi;
+  /// 自定义内容区构建器
+  final Widget Function(BuildContext context, List<String>? selectedValues)? customContentBuilder;
 
-  const InputContainer({super.key, this.onTap, this.label, this.selectedValue, this.onClear, this.customContentUi, this.isExpanded = false, this.displayMode, this.selectedValues});
+  const InputContainer({
+    super.key,
+    this.onTap,
+    this.label,
+    this.selectedValue,
+    this.onClear,
+    this.customContentBuilder,
+    this.isExpanded = false,
+    this.displayMode,
+    this.selectedValues,
+  });
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -38,47 +48,50 @@ class InputContainer extends StatelessWidget {
       ),
       child: InkWell(
         onTap: onTap,
-        child:
-            customContentUi ??
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              spacing: 20,
-              children: [
-                Text(label ?? 'label 区域'),
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // 内容区域：显示已选中的值
-                      Expanded(
-                        child: displayMode == DisplayMode.tags && selectedValues != null && selectedValues!.isNotEmpty
-                            ? _buildTagsMode() // 标签模式
-                            : _buildTextMode(), // 文本模式
-                      ),
-                      // 操作按钮：箭头/关闭图标
-                      InkWell(
-                        onTap: selectedValue != null ? onClear : onTap,
-                        borderRadius: BorderRadius.circular(6),
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(color: selectedValue != null ? Colors.red.shade50 : Colors.grey.shade100, borderRadius: BorderRadius.circular(6)),
-                          child: Icon(
-                            selectedValue != null
-                                ? Icons.close
-                                : isExpanded
-                                ? Icons.keyboard_arrow_down_rounded
-                                : Icons.keyboard_arrow_right_rounded,
-                            size: 20,
-                            color: selectedValue != null ? Colors.red.shade400 : Colors.blue.shade600,
-                            weight: 2.5,
+        child: customContentBuilder != null
+            ? customContentBuilder!(context, selectedValues)
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                spacing: 20,
+                children: [
+                  Text(label ?? 'label 区域'),
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // 内容区域：显示已选中的值
+                        Expanded(
+                          child: displayMode == DisplayMode.tags && selectedValues != null && selectedValues!.isNotEmpty
+                              ? _buildTagsMode() // 标签模式
+                              : _buildTextMode(), // 文本模式
+                        ),
+                        // 操作按钮：箭头/关闭图标
+                        InkWell(
+                          onTap: (selectedValue != null || (selectedValues?.isNotEmpty ?? false)) ? onClear : onTap,
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: (selectedValue != null || (selectedValues?.isNotEmpty ?? false)) ? Colors.red.shade50 : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Icon(
+                              selectedValue != null || (selectedValues?.isNotEmpty ?? false)
+                                  ? Icons.close
+                                  : isExpanded
+                                  ? Icons.keyboard_arrow_down_rounded
+                                  : Icons.keyboard_arrow_right_rounded,
+                              size: 20,
+                              color: selectedValue != null || (selectedValues?.isNotEmpty ?? false) ? Colors.red.shade400 : Colors.blue.shade600,
+                              weight: 2.5,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
       ),
     );
   }

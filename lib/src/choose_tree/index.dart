@@ -40,8 +40,8 @@ class ChooseTree<ID, DATA extends Map<String, dynamic>> extends StatefulWidget {
   /// 多选确认回调
   final MultiConfirmCallback<ID, DATA>? onMultiConfirm;
 
-  /// 自定义组件
-  final Widget? customContentUi;
+  /// 自定义内容区构建器
+  final Widget Function(BuildContext context, List<Map<String, dynamic>> selectedValues)? customContentBuilder;
 
   /// 是否启用远程搜索模式
   final bool? remoteSearch;
@@ -72,7 +72,7 @@ class ChooseTree<ID, DATA extends Map<String, dynamic>> extends StatefulWidget {
     this.displayMode,
     this.onSingleConfirm,
     this.onMultiConfirm,
-    this.customContentUi,
+    this.customContentBuilder,
     this.remoteSearch,
     this.remoteMethod,
     this.cacheStrategy,
@@ -316,7 +316,9 @@ class _ChooseTreeState<ID, DATA extends Map<String, dynamic>> extends State<Choo
   @override
   Widget build(BuildContext context) {
     return InputContainer(
-      customContentUi: widget.customContentUi,
+      customContentBuilder: widget.customContentBuilder != null
+          ? (context, tagValues) => widget.customContentBuilder!(context, _selectedNodes.map((e) => e.rawData).toList())
+          : null,
       onTap: _showPopup,
       label: widget.title ?? '请选择',
       selectedValue: _selectedValue,
