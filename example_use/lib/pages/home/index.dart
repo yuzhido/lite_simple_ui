@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'widgets/index.dart';
 import '../choose_tree/index.dart';
 import '../dropdown_choose/index.dart';
+import '../config_form/index.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -48,7 +49,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('UI组件示例使用分类主页')),
+      appBar: AppBar(title: const Text('UI 组件示例使用分类主页')),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,6 +71,16 @@ class _HomePageState extends State<HomePage> {
               description: '支持树形数据展示、层级联动选择',
               onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const ChooseTreePage()));
+              },
+            ),
+            const SizedBox(height: 12),
+            // 配置表单组件
+            _buildComponentSection(
+              context,
+              title: '配置表单组件',
+              description: '支持多种验证方式、灵活布局风格的表单组件',
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const ConfigFormExample()));
               },
             ),
             const SizedBox(height: 24),
