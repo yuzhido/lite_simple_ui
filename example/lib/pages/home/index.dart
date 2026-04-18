@@ -1,4 +1,5 @@
 import 'package:example/pages/button/index.dart';
+import 'package:example/pages/dropdown_choose/index.dart';
 import 'package:flutter/material.dart';
 import 'package:lite_simple_ui/lite_simple_ui.dart';
 
@@ -24,18 +25,7 @@ class _HomePageState extends State<HomePage> {
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Button(
-                  width: double.infinity,
                   height: 48,
-                  backgroundColor: Colors.blue,
-                  disabledColor: Colors.grey.shade300,
-                  loadingWidget: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white))),
-                      SizedBox(width: 8),
-                      Text('加载中...', style: TextStyle(color: Colors.white)),
-                    ],
-                  ),
                   onTap: () async {
                     await AppRouter.push(context, const ButtonPage());
                   },
@@ -45,6 +35,13 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
+            ),
+            // 下拉选择
+            Button(
+              text: '点击进入下拉选择页面',
+              onTap: () {
+                AppRouter.push(context, const DropdownChoosePage());
+              },
             ),
           ],
         ),

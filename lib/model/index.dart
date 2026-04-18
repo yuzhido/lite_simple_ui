@@ -66,3 +66,11 @@ enum DataCacheType {
   /// 缓存
   cache,
 }
+
+/// 备选数据模型
+class ChooseDataModel<T, Id> {
+  T data;
+  String name;
+  Id value;
+  ChooseDataModel({required this.name, required this.value, required this.data});
+}
