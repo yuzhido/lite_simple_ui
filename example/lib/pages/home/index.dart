@@ -1,5 +1,6 @@
 import 'package:example/pages/button/index.dart';
 import 'package:example/pages/dropdown_choose/index.dart';
+import 'package:example/pages/network_demo/index.dart';
 import 'package:flutter/material.dart';
 import 'package:lite_simple_ui/lite_simple_ui.dart';
 
@@ -29,10 +30,7 @@ class _HomePageState extends State<HomePage> {
                   onTap: () async {
                     await AppRouter.push(context, const ButtonPage());
                   },
-                  child: const Text(
-                    '点击进入按钮页面',
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
+                  child: const Text('点击进入按钮页面', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                 ),
               ),
             ),
@@ -41,6 +39,12 @@ class _HomePageState extends State<HomePage> {
               text: '点击进入下拉选择页面',
               onTap: () {
                 AppRouter.push(context, const DropdownChoosePage());
+              },
+            ),
+            Button(
+              text: '点击进入网络请求页面',
+              onTap: () {
+                AppRouter.push(context, const NetworkDemoPage());
               },
             ),
           ],
