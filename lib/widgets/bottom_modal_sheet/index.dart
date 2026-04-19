@@ -34,8 +34,9 @@ class BottomModalSheet {
     required List<T> options,
     String Function(T)? displayText,
     R Function(T)? valueExtractor,
-    R? defaultValue, // 新增：默认选中值
+    dynamic defaultValue, // 支持单选 ID 或多选 ID 列表
     String? title = '请选择相关备选数据',
+    bool isMultiSelect = false,
     bool? showAdd,
     bool? remote,
     bool? forceRefresh,
@@ -85,6 +86,8 @@ class BottomModalSheet {
             valueExtractor: defaultValueExtractor,
             // 默认选中值
             defaultValue: defaultValue,
+            // 是否多选
+            isMultiSelect: isMultiSelect,
             // 是否显示添加按钮
             showAdd: showAdd,
             // 是否通过远程接口获取数据

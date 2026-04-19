@@ -16,6 +16,7 @@ class MainContent<R, T> extends StatefulWidget {
   final String Function(T) displayText;
   final R Function(T) valueExtractor;
   final R? defaultValue; // 新增：默认选中值
+  final bool isMultiSelect;
 
   const MainContent({
     super.key,
@@ -28,6 +29,7 @@ class MainContent<R, T> extends StatefulWidget {
     required this.displayText,
     required this.valueExtractor,
     this.defaultValue, // 新增
+    this.isMultiSelect = false,
   });
   @override
   State<MainContent<R, T>> createState() => _MainContentState<R, T>();
@@ -49,6 +51,7 @@ class _MainContentState<R, T> extends State<MainContent<R, T>> {
             displayText: widget.displayText,
             valueExtractor: widget.valueExtractor,
             defaultValue: widget.defaultValue, // 传递默认值
+            isMultiSelect: widget.isMultiSelect,
           ),
         ),
         // 没有任何备选数据时显示
