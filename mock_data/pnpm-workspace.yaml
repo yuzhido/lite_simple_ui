@@ -1,0 +1,4 @@
+ignoredBuiltDependencies:
+  - '@scarf/scarf'
+onlyBuiltDependencies:
+  - sqlite3

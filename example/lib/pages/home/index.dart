@@ -20,19 +20,12 @@ class _HomePageState extends State<HomePage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Button(
-                  height: 48,
-                  onTap: () async {
-                    await AppRouter.push(context, const ButtonPage());
-                  },
-                  child: const Text('点击进入按钮页面', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                ),
-              ),
+            Button(
+              height: 48,
+              onTap: () async {
+                await AppRouter.push(context, const ButtonPage());
+              },
+              child: const Text('点击进入按钮页面', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
             ),
             // 下拉选择
             Button(
