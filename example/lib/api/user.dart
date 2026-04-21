@@ -5,7 +5,7 @@ class UserModel {
   final String id;
   final String username;
   final String email;
-  final String? password; // 仅用于创建/更新，查询时通常不返回
+  final String? password;
   final String role;
   final String? avatar;
   final bool isActive;
@@ -56,6 +56,8 @@ class PageData<T> {
 
   /// 从 JSON 创建 PageData
   factory PageData.fromJson(Map<String, dynamic> json, T Function(Map<String, dynamic>) fromJson) {
+    // 后端返回格式：{ success, message, data: { list, pagination } }
+    // json 参数已经是 data 字段的内容
     final pagination = json['pagination'] ?? {};
     final listData = json['list'] as List<dynamic>? ?? [];
 

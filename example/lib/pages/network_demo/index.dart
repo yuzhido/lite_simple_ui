@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../api/user.dart';
 import '../../core/network/index.dart';
+import '../../core/constant/index.dart';
 
 class NetworkDemoPage extends StatefulWidget {
   const NetworkDemoPage({super.key});
@@ -19,12 +20,13 @@ class _NetworkDemoPageState extends State<NetworkDemoPage> {
     // 初始化 HTTP 客户端
     final httpClient = HttpClient.getInstance();
 
-    // API 地址配置
-    const String baseUrl = 'http://192.168.1.20:3001/api';
+    // API 地址配置（自动根据平台选择）
+    final String baseUrl = ApiConfig.baseUrl;
 
     httpClient.configure(baseUrl: baseUrl, connectTimeout: 30000, receiveTimeout: 30000, sendTimeout: 30000, enableLog: true);
 
-    debugPrint('🌐 API Base URL: $baseUrl');
+    // 打印配置信息
+    ApiConfig.printConfig();
   }
 
   /// 获取用户列表（分页）
