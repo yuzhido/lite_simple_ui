@@ -37,11 +37,41 @@ class _DropdownChoosePageState extends State<DropdownChoosePage> {
           children: [
             const Text('单选模式:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            DropdownChoose<int, UserInfo>(options: users),
+            DropdownChoose<int, UserInfo>(
+              options: users,
+              label: '用户',
+              onChange: (r, data, bool? isSelected) {
+                print('选中这是最后从的结果: $r, ${data.name}');
+                print('是否选中$isSelected');
+              },
+            ),
+            const SizedBox(height: 20),
+            const Text('单选回显模式:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            DropdownChoose<int, UserInfo>(options: users, selectedValue: 25555555555121223, label: '用户（回显）'),
+            const SizedBox(height: 20),
+            const Text('自定义显示文本:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            DropdownChoose<int, UserInfo>(options: users, selectedValue: 25555555555121223, displayText: (user) => '${user.name}(${user.age}岁)', label: '自定义显示'),
             const SizedBox(height: 20),
             const Text('多选模式:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            DropdownChoose<int, UserInfo>(options: users, isMultiSelect: true),
+            DropdownChoose<int, UserInfo>(
+              options: users,
+              isMultiSelect: true,
+              label: '多选用户',
+              onConfirm: (r, data) {
+                print('多选最后666999确认的结果: $r, $data');
+              },
+              onChange: (r, data, bool? isSelected) {
+                print('选中这是最后从的结果: $r, ${data.name}');
+                print('是否选中$isSelected');
+              },
+            ),
+            const SizedBox(height: 20),
+            const Text('多选回显模式:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            DropdownChoose<int, UserInfo>(options: users, isMultiSelect: true, selectedValues: [25555555555121223, 65555555555121223], label: '多选用户（回显）'),
           ],
         ),
       ),

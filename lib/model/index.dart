@@ -74,3 +74,12 @@ class ChooseDataModel<T, Id> {
   Id value;
   ChooseDataModel({required this.name, required this.value, required this.data});
 }
+
+enum InputMode {
+  // 输入
+  input,
+  // 选择
+  select,
+  // 自定义
+  custom,
+}

@@ -63,6 +63,9 @@ class Button extends StatefulWidget {
   /// 不指定时使用 16
   final double? loadingTextSize;
 
+  /// 按钮样式
+  final ButtonStyle? style;
+
   /// 创建按钮组件
   ///
   /// [text] 和 [child] 必须至少提供一个
@@ -79,6 +82,7 @@ class Button extends StatefulWidget {
     this.loadingText,
     this.loadingTextColor,
     this.loadingTextSize,
+    this.style,
   });
 
   @override
@@ -117,7 +121,7 @@ class _ButtonState extends State<Button> {
 
     final button = ElevatedButton(
       onPressed: _isLoading ? null : (widget.onTap != null ? () => _handlePress() : null),
-      style: ElevatedButton.styleFrom(backgroundColor: _isLoading ? widget.disabledColor ?? Colors.grey.shade300 : widget.backgroundColor),
+      style: widget.style ?? ElevatedButton.styleFrom(backgroundColor: _isLoading ? widget.disabledColor ?? Colors.grey.shade300 : widget.backgroundColor),
       child: _isLoading
           ? (widget.loadingWidget ??
                 Row(

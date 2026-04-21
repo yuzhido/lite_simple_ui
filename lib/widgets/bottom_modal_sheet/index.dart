@@ -29,7 +29,7 @@ class BottomModalSheet {
   /// - `name` 字段用于显示文本
   /// - `id` 字段用于返回值
   ///
-  static Future<R?> show<R, T>(
+  static Future show<R, T>(
     BuildContext context, {
     required List<T> options,
     String Function(T)? displayText,
@@ -44,6 +44,8 @@ class BottomModalSheet {
     double? height,
     Color? backgroundColor,
     VoidCallback? onDismissed,
+    Function(R, T)? onChange,
+    Function(List<R>, List<T>)? onConfirm,
   }) {
     // 默认显示文本提取函数：尝试访问 name 字段
     final defaultDisplayText =
@@ -60,7 +62,7 @@ class BottomModalSheet {
           final dynamicObj = item as dynamic;
           return dynamicObj.id as R;
         });
-    return showModalBottomSheet<R>(
+    return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: backgroundColor ?? Colors.white,
@@ -96,12 +98,16 @@ class BottomModalSheet {
             forceRefresh: forceRefresh,
             // 远程获取数据方法
             remoteMethod: remoteMethod,
+            onChange: (R value, T item) {
+              onChange?.call(value, item);
+            },
+            onConfirm: (List<R> value, List<T> items) {
+              onConfirm?.call(value, items);
+              Navigator.of(context).pop();
+            },
           ),
         );
       },
-    ).then((value) {
-      onDismissed?.call();
-      return value;
-    });
+    );
   }
 }
