@@ -3,7 +3,10 @@ import 'package:lite_simple_ui/config/ui_theme.dart';
 import 'package:lite_simple_ui/widgets/bottom_modal_sheet/index.dart';
 import 'package:lite_simple_ui/widgets/container_wrapper/index.dart';
 
-class DropdownChoose<R, T> extends StatefulWidget {
+import 'controller.dart';
+
+/// 下拉选择组件 - 支持 Flutter Form 表单验证
+class DropdownChoose<R, T> extends FormField<dynamic> {
   /// 选项列表
   final List<T> options;
 
@@ -16,10 +19,10 @@ class DropdownChoose<R, T> extends StatefulWidget {
   /// 提示信息
   final String? tip;
 
-  /// 选中的值
+  /// 选中的值（单选）
   final R? selectedValue;
 
-  /// 选中的值列表
+  /// 选中的值列表（多选）
   final List<R>? selectedValues;
 
   /// 从对象中提取 ID（默认提取 id 字段）
@@ -31,10 +34,13 @@ class DropdownChoose<R, T> extends StatefulWidget {
   /// 选中时的回调
   final void Function(R, T, bool?)? onChange;
 
-  /// 确认时的回调
+  /// 确认时的回调（多选）
   final void Function(List<R>, List<T>)? onConfirm;
 
-  const DropdownChoose({
+  /// 控制器（可选）
+  final DropdownChooseController<R>? controller;
+
+  DropdownChoose({
     required this.options,
     this.isMultiSelect = false,
     super.key,
@@ -46,29 +52,141 @@ class DropdownChoose<R, T> extends StatefulWidget {
     this.displayText,
     this.onChange,
     this.onConfirm,
-  });
-  @override
-  State<DropdownChoose<R, T>> createState() => _DropdownChooseState<R, T>();
+    this.controller,
+    super.validator,
+    super.autovalidateMode = AutovalidateMode.disabled,
+  }) : super(
+         builder: (FormFieldState<dynamic> field) {
+           return _DropdownChooseField<R, T>(
+             options: options,
+             isMultiSelect: isMultiSelect,
+             label: label,
+             tip: tip,
+             selectedValue: selectedValue,
+             selectedValues: selectedValues,
+             valueExtractor: valueExtractor,
+             displayText: displayText,
+             onChange: onChange,
+             onConfirm: onConfirm,
+             controller: controller,
+             field: field,
+           );
+         },
+       );
 }
 
-class _DropdownChooseState<R, T> extends State<DropdownChoose<R, T>> {
-  R? selectedValue;
-  List<R>? selectedValues;
+/// 内部字段组件 - 与 FormField 集成
+class _DropdownChooseField<R, T> extends StatefulWidget {
+  final List<T> options;
+  final bool isMultiSelect;
+  final String label;
+  final String? tip;
+  final R? selectedValue;
+  final List<R>? selectedValues;
+  final R Function(T)? valueExtractor;
+  final String Function(T)? displayText;
+  final void Function(R, T, bool?)? onChange;
+  final void Function(List<R>, List<T>)? onConfirm;
+  final DropdownChooseController<R>? controller;
+  final FormFieldState<dynamic> field;
+
+  const _DropdownChooseField({
+    required this.options,
+    required this.isMultiSelect,
+    required this.label,
+    this.tip,
+    this.selectedValue,
+    this.selectedValues,
+    this.valueExtractor,
+    this.displayText,
+    this.onChange,
+    this.onConfirm,
+    this.controller,
+    required this.field,
+  });
+
+  @override
+  State<_DropdownChooseField<R, T>> createState() => _DropdownChooseFieldState<R, T>();
+}
+
+class _DropdownChooseFieldState<R, T> extends State<_DropdownChooseField<R, T>> {
+  R? _selectedValue;
+  List<R>? _selectedValues;
+
   @override
   void initState() {
     super.initState();
-    selectedValue = widget.selectedValue;
+    _selectedValue = widget.selectedValue;
+    _selectedValues = widget.selectedValues;
+
+    // 如果提供了控制器，初始化值并监听变化
+    if (widget.controller != null) {
+      if (widget.isMultiSelect) {
+        _selectedValues = widget.controller!.values;
+      } else {
+        _selectedValue = widget.controller!.value;
+      }
+
+      // 监听控制器变化
+      widget.controller!.addListener(_onControllerChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    // 移除监听器
+    widget.controller?.removeListener(_onControllerChanged);
+    super.dispose();
+  }
+
+  /// 控制器值变化时的回调
+  void _onControllerChanged() {
+    if (widget.controller == null) return;
+
+    setState(() {
+      if (widget.isMultiSelect) {
+        _selectedValues = widget.controller!.values;
+      } else {
+        _selectedValue = widget.controller!.value;
+      }
+    });
+
+    // 通知 Form 状态变化
+    if (widget.isMultiSelect) {
+      widget.field.didChange(_selectedValues);
+    } else {
+      widget.field.didChange(_selectedValue);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _DropdownChooseField<R, T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedValue != widget.selectedValue) {
+      setState(() {
+        _selectedValue = widget.selectedValue;
+      });
+    }
+    if (oldWidget.selectedValues != widget.selectedValues) {
+      setState(() {
+        _selectedValues = widget.selectedValues;
+      });
+    }
   }
 
   /// 清空选中值
   void onClear() {
     setState(() {
-      selectedValue = null;
-      selectedValues = null;
+      _selectedValue = null;
+      _selectedValues = null;
     });
-  }
 
-  dynamic _selectData;
+    // 同步清空控制器
+    widget.controller?.clear();
+
+    // 通知 Form 状态变化
+    widget.field.didChange(null);
+  }
 
   /// 从对象中提取 ID
   R _extractValue(T item) {
@@ -96,7 +214,7 @@ class _DropdownChooseState<R, T> extends State<DropdownChoose<R, T>> {
   Widget _getDisplayText() {
     final tipInfo = widget.tip ?? '请选择${widget.label}';
     if (widget.isMultiSelect == true) {
-      final ids = selectedValues ?? [];
+      final ids = _selectedValues ?? [];
       if (ids.isEmpty) return Text(tipInfo, style: TextStyle(fontSize: 16, color: UiTheme.tipTextFontColor));
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -124,9 +242,9 @@ class _DropdownChooseState<R, T> extends State<DropdownChoose<R, T>> {
         ),
       );
     } else {
-      if (selectedValue == null) return Text(tipInfo, style: TextStyle(fontSize: 16, color: Colors.grey.shade600));
-      final item = _findOptionById(selectedValue as R);
-      return Text(item != null ? _extractDisplayText(item) : selectedValue.toString());
+      if (_selectedValue == null) return Text(tipInfo, style: TextStyle(fontSize: 16, color: Colors.grey.shade600));
+      final item = _findOptionById(_selectedValue as R);
+      return Text(item != null ? _extractDisplayText(item) : _selectedValue.toString());
     }
   }
 
@@ -136,34 +254,53 @@ class _DropdownChooseState<R, T> extends State<DropdownChoose<R, T>> {
       context,
       title: widget.label,
       options: widget.options,
-      defaultValue: widget.isMultiSelect ? selectedValues : selectedValue,
+      defaultValue: widget.isMultiSelect ? _selectedValues : _selectedValue,
       isMultiSelect: widget.isMultiSelect,
       displayText: widget.displayText,
       valueExtractor: widget.valueExtractor,
       onChange: (R r, T data) {
-        // 更新选中值 传递选中的实际值好还是选中这个完整对象好(后续评估取舍)
-        selectedValue = r;
-        _selectData = data;
+        // 更新选中值
+        setState(() {
+          _selectedValue = r;
+        });
+
+        // 同步更新控制器
+        if (widget.controller != null) {
+          widget.controller!.setValue(r);
+        }
+
+        // 通知 Form 状态变化
+        widget.field.didChange(r);
+
         if (widget.onChange != null) {
           widget.onChange!(r, data, null);
         }
       },
       onConfirm: (List<R> r, List<T> data) {
-        selectedValues = r;
-        _selectData = data.map((item) => _extractDisplayText(item)).toList();
+        setState(() {
+          _selectedValues = r;
+        });
+
+        // 同步更新控制器
+        if (widget.controller != null) {
+          widget.controller!.setValues(r);
+        }
+
+        // 通知 Form 状态变化
+        widget.field.didChange(r);
+
         if (widget.onConfirm != null) {
           widget.onConfirm!(r, data);
         }
-        setState(() {});
       },
     );
 
     if (res != null) {
       setState(() {
         if (widget.isMultiSelect) {
-          selectedValues = res as List<R>?;
+          _selectedValues = res as List<R>?;
         } else {
-          selectedValue = res as R?;
+          _selectedValue = res as R?;
         }
       });
     }
@@ -171,15 +308,20 @@ class _DropdownChooseState<R, T> extends State<DropdownChoose<R, T>> {
 
   @override
   Widget build(BuildContext context) {
+    // 检查是否有验证错误
+    final hasError = widget.field.errorText != null && widget.field.errorText!.isNotEmpty;
+
     return ContainerWrapper<R>(
-      // 标签名称
       label: widget.label,
       tip: widget.tip,
-      selectedValue: selectedValue,
-      selectedValues: selectedValues,
+      selectedValue: _selectedValue,
+      selectedValues: _selectedValues,
       displayText: _getDisplayText(),
       onClear: onClear,
       onTap: onShowChoose,
+      // 传递错误信息
+      errorText: hasError ? widget.field.errorText : null,
+      hasError: hasError,
     );
   }
 }

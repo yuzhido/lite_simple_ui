@@ -15,6 +15,13 @@ class ContainerWrapper<R> extends StatefulWidget {
 
   /// 清空选中回调
   final VoidCallback? onClear;
+
+  /// 验证错误文本
+  final String? errorText;
+
+  /// 是否有验证错误
+  final bool hasError;
+
   const ContainerWrapper({
     required this.label,
     this.required = true,
@@ -26,6 +33,8 @@ class ContainerWrapper<R> extends StatefulWidget {
     this.selectedValues,
     this.tip,
     this.inputMode = InputMode.select,
+    this.errorText,
+    this.hasError = false,
   });
   @override
   State<ContainerWrapper> createState() => _ContainerWrapperState();
@@ -65,7 +74,7 @@ class _ContainerWrapperState<R> extends State<ContainerWrapper<R>> {
       onTap: widget.onTap,
       child: Container(
         decoration: BoxDecoration(
-          border: Border.all(color: UiTheme.borderColor, width: 1),
+          border: Border.all(color: widget.hasError ? Colors.red : UiTheme.borderColor, width: 1),
           borderRadius: BorderRadius.circular(5),
         ),
         padding: EdgeInsets.all(10),
@@ -73,7 +82,7 @@ class _ContainerWrapperState<R> extends State<ContainerWrapper<R>> {
           spacing: 5,
           children: [
             // 前面图标
-            Icon(Icons.branding_watermark_outlined, size: 20, color: UiTheme.primaryColor),
+            Icon(Icons.branding_watermark_outlined, size: 20, color: widget.hasError ? Colors.red : UiTheme.primaryColor),
             // 必填标识
             if (widget.required)
               Text(
@@ -83,8 +92,13 @@ class _ContainerWrapperState<R> extends State<ContainerWrapper<R>> {
             // 标签
             Text(widget.label, style: TextStyle(fontSize: 16)),
             // 选中值
-            if (widget.selectedValue != null)
+            if (widget.selectedValue != null || (widget.selectedValues?.isNotEmpty ?? false))
               Expanded(child: widget.displayText ?? SizedBox.shrink())
+            // 验证错误信息
+            else if (widget.hasError && widget.errorText != null)
+              Expanded(
+                child: Text(widget.errorText!, style: TextStyle(fontSize: 16, color: Colors.red.shade600)),
+              )
             // 提示信息
             else
               Expanded(
