@@ -4,6 +4,8 @@ import 'package:lite_simple_ui/widgets/bottom_modal_sheet/index.dart';
 import 'package:lite_simple_ui/widgets/container_wrapper/index.dart';
 
 import 'controller.dart';
+import 'data_helper.dart';
+import 'selection_manager.dart';
 
 /// 下拉选择组件 - 支持 Flutter Form 表单验证
 class DropdownChoose<R, T> extends FormField<dynamic> {
@@ -40,6 +42,10 @@ class DropdownChoose<R, T> extends FormField<dynamic> {
   /// 控制器（可选）
   final DropdownChooseController<R>? controller;
 
+  /// 初始显示值（用于编辑回显）
+  /// 当只有 ID 时，传入包含 id 和 name 的最小化对象
+  final T? initialDisplayValue;
+
   DropdownChoose({
     required this.options,
     this.isMultiSelect = false,
@@ -53,6 +59,7 @@ class DropdownChoose<R, T> extends FormField<dynamic> {
     this.onChange,
     this.onConfirm,
     this.controller,
+    this.initialDisplayValue,
     super.validator,
     super.autovalidateMode = AutovalidateMode.disabled,
   }) : super(
@@ -69,6 +76,7 @@ class DropdownChoose<R, T> extends FormField<dynamic> {
              onChange: onChange,
              onConfirm: onConfirm,
              controller: controller,
+             initialDisplayValue: initialDisplayValue,
              field: field,
            );
          },
@@ -88,6 +96,7 @@ class _DropdownChooseField<R, T> extends StatefulWidget {
   final void Function(R, T, bool?)? onChange;
   final void Function(List<R>, List<T>)? onConfirm;
   final DropdownChooseController<R>? controller;
+  final T? initialDisplayValue;
   final FormFieldState<dynamic> field;
 
   const _DropdownChooseField({
@@ -102,6 +111,7 @@ class _DropdownChooseField<R, T> extends StatefulWidget {
     this.onChange,
     this.onConfirm,
     this.controller,
+    this.initialDisplayValue,
     required this.field,
   });
 
@@ -110,119 +120,79 @@ class _DropdownChooseField<R, T> extends StatefulWidget {
 }
 
 class _DropdownChooseFieldState<R, T> extends State<_DropdownChooseField<R, T>> {
-  R? _selectedValue;
-  List<R>? _selectedValues;
+  late final DropdownDataHelper<R, T> _dataHelper;
+  late final SelectionManager<R> _selectionManager;
 
   @override
   void initState() {
     super.initState();
-    _selectedValue = widget.selectedValue;
-    _selectedValues = widget.selectedValues;
 
-    // 如果提供了控制器，初始化值并监听变化
-    if (widget.controller != null) {
-      if (widget.isMultiSelect) {
-        _selectedValues = widget.controller!.values;
-      } else {
-        _selectedValue = widget.controller!.value;
-      }
+    // 初始化数据助手
+    _dataHelper = DropdownDataHelper<R, T>(options: widget.options, valueExtractor: widget.valueExtractor, displayText: widget.displayText);
 
-      // 监听控制器变化
-      widget.controller!.addListener(_onControllerChanged);
-    }
+    // 初始化选择管理器
+    _selectionManager = SelectionManager<R>(isMultiSelect: widget.isMultiSelect, controller: widget.controller, field: widget.field, onStateChanged: () => setState(() {}));
+
+    // 初始化值
+    _selectionManager.initialize(widget.selectedValue, widget.selectedValues);
+
+    // 监听控制器变化
+    _selectionManager.addControllerListener(_onControllerChanged);
   }
 
   @override
   void dispose() {
-    // 移除监听器
-    widget.controller?.removeListener(_onControllerChanged);
+    _selectionManager.removeControllerListener(_onControllerChanged);
     super.dispose();
   }
 
   /// 控制器值变化时的回调
   void _onControllerChanged() {
-    if (widget.controller == null) return;
-
-    setState(() {
-      if (widget.isMultiSelect) {
-        _selectedValues = widget.controller!.values;
-      } else {
-        _selectedValue = widget.controller!.value;
-      }
-    });
-
-    // 通知 Form 状态变化
-    if (widget.isMultiSelect) {
-      widget.field.didChange(_selectedValues);
-    } else {
-      widget.field.didChange(_selectedValue);
-    }
+    _selectionManager.syncFromController();
   }
 
   @override
   void didUpdateWidget(covariant _DropdownChooseField<R, T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedValue != widget.selectedValue) {
-      setState(() {
-        _selectedValue = widget.selectedValue;
-      });
+
+    // 重新创建数据助手（如果选项变化）
+    if (oldWidget.options != widget.options || oldWidget.valueExtractor != widget.valueExtractor || oldWidget.displayText != widget.displayText) {
+      _dataHelper = DropdownDataHelper<R, T>(options: widget.options, valueExtractor: widget.valueExtractor, displayText: widget.displayText);
     }
-    if (oldWidget.selectedValues != widget.selectedValues) {
-      setState(() {
-        _selectedValues = widget.selectedValues;
-      });
+
+    // 同步外部传入的值（如果没有使用控制器）
+    if (widget.controller == null) {
+      if (oldWidget.selectedValue != widget.selectedValue) {
+        setState(() {
+          _selectionManager.initialize(widget.selectedValue, widget.selectedValues);
+        });
+      }
+      if (oldWidget.selectedValues != widget.selectedValues) {
+        setState(() {
+          _selectionManager.initialize(widget.selectedValue, widget.selectedValues);
+        });
+      }
     }
   }
 
   /// 清空选中值
   void onClear() {
-    setState(() {
-      _selectedValue = null;
-      _selectedValues = null;
-    });
-
-    // 同步清空控制器
-    widget.controller?.clear();
-
-    // 通知 Form 状态变化
-    widget.field.didChange(null);
-  }
-
-  /// 从对象中提取 ID
-  R _extractValue(T item) {
-    if (widget.valueExtractor != null) return widget.valueExtractor!(item);
-    final dynamicObj = item as dynamic;
-    return dynamicObj.id as R;
-  }
-
-  /// 从对象中提取显示文本
-  String _extractDisplayText(T item) {
-    if (widget.displayText != null) return widget.displayText!(item);
-    final dynamicObj = item as dynamic;
-    return dynamicObj.name?.toString() ?? item.toString();
-  }
-
-  /// 通过 ID 在 options 中查找对象
-  T? _findOptionById(R id) {
-    for (var item in widget.options) {
-      if (_extractValue(item) == id) return item;
-    }
-    return null;
+    _selectionManager.clear();
   }
 
   /// 获取显示文本
   Widget _getDisplayText() {
     final tipInfo = widget.tip ?? '请选择${widget.label}';
     if (widget.isMultiSelect == true) {
-      final ids = _selectedValues ?? [];
+      final ids = _selectionManager.selectedValues ?? [];
       if (ids.isEmpty) return Text(tipInfo, style: TextStyle(fontSize: 16, color: UiTheme.tipTextFontColor));
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
           spacing: 6,
           children: ids.map((id) {
-            final item = _findOptionById(id);
-            final displayText = item != null ? _extractDisplayText(item) : id.toString();
+            final item = _dataHelper.findOptionById(id);
+            final displayText = item != null ? _dataHelper.extractDisplayText(item) : id.toString();
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(color: const Color(0xFFE8E0FF), borderRadius: BorderRadius.circular(15)),
@@ -242,9 +212,9 @@ class _DropdownChooseFieldState<R, T> extends State<_DropdownChooseField<R, T>> 
         ),
       );
     } else {
-      if (_selectedValue == null) return Text(tipInfo, style: TextStyle(fontSize: 16, color: Colors.grey.shade600));
-      final item = _findOptionById(_selectedValue as R);
-      return Text(item != null ? _extractDisplayText(item) : _selectedValue.toString());
+      if (_selectionManager.selectedValue == null) return Text(tipInfo, style: TextStyle(fontSize: 16, color: Colors.grey.shade600));
+      final item = _dataHelper.findOptionById(_selectionManager.selectedValue as R);
+      return Text(item != null ? _dataHelper.extractDisplayText(item) : _selectionManager.selectedValue.toString());
     }
   }
 
@@ -254,53 +224,31 @@ class _DropdownChooseFieldState<R, T> extends State<_DropdownChooseField<R, T>> 
       context,
       title: widget.label,
       options: widget.options,
-      defaultValue: widget.isMultiSelect ? _selectedValues : _selectedValue,
+      defaultValue: widget.isMultiSelect ? _selectionManager.selectedValues : _selectionManager.selectedValue,
       isMultiSelect: widget.isMultiSelect,
       displayText: widget.displayText,
       valueExtractor: widget.valueExtractor,
+      initialDisplayValue: widget.initialDisplayValue,
       onChange: (R r, T data) {
-        // 更新选中值
         setState(() {
-          _selectedValue = r;
+          _selectionManager.setSingleValue(r);
         });
-
-        // 同步更新控制器
-        if (widget.controller != null) {
-          widget.controller!.setValue(r);
-        }
-
-        // 通知 Form 状态变化
-        widget.field.didChange(r);
-
-        if (widget.onChange != null) {
-          widget.onChange!(r, data, null);
-        }
+        widget.onChange?.call(r, data, null);
       },
       onConfirm: (List<R> r, List<T> data) {
         setState(() {
-          _selectedValues = r;
+          _selectionManager.setMultiValues(r);
         });
-
-        // 同步更新控制器
-        if (widget.controller != null) {
-          widget.controller!.setValues(r);
-        }
-
-        // 通知 Form 状态变化
-        widget.field.didChange(r);
-
-        if (widget.onConfirm != null) {
-          widget.onConfirm!(r, data);
-        }
+        widget.onConfirm?.call(r, data);
       },
     );
 
     if (res != null) {
       setState(() {
         if (widget.isMultiSelect) {
-          _selectedValues = res as List<R>?;
+          _selectionManager.initialize(null, res as List<R>?);
         } else {
-          _selectedValue = res as R?;
+          _selectionManager.initialize(res as R?, null);
         }
       });
     }
@@ -314,8 +262,8 @@ class _DropdownChooseFieldState<R, T> extends State<_DropdownChooseField<R, T>> 
     return ContainerWrapper<R>(
       label: widget.label,
       tip: widget.tip,
-      selectedValue: _selectedValue,
-      selectedValues: _selectedValues,
+      selectedValue: _selectionManager.selectedValue,
+      selectedValues: _selectionManager.selectedValues,
       displayText: _getDisplayText(),
       onClear: onClear,
       onTap: onShowChoose,

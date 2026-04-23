@@ -22,7 +22,10 @@ class BottomModalSheet {
   /// - [showAdd]: 是否显示添加按钮（可选）
   /// - [remote]: 是否通过远程接口获取数据（可选）
   /// - [forceRefresh]: 是否强制刷新（可选）
-  /// - [remoteMethod]: 远程获取数据方法（可选）
+  /// - [remoteMethod]: 远程获取数据方法（可选），支持关键字参数
+  /// - [showSearchButton]: 是否显示搜索按钮（远程模式）
+  /// - [searchDebounceMs]: 搜索防抖时间（毫秒），默认 500ms
+  /// - [initialDisplayValue]: 初始显示值（用于编辑回显）
   ///
   /// ## 默认约定
   /// 如果不提供 `displayText` 和 `valueExtractor`，组件会自动尝试访问数据项的：
@@ -40,7 +43,10 @@ class BottomModalSheet {
     bool? showAdd,
     bool? remote,
     bool? forceRefresh,
-    Future<List<T>?> Function()? remoteMethod,
+    Future<List<T>?> Function(String? keyword)? remoteMethod,
+    bool showSearchButton = false,
+    int searchDebounceMs = 500,
+    T? initialDisplayValue,
     double? height,
     Color? backgroundColor,
     VoidCallback? onDismissed,
@@ -98,6 +104,12 @@ class BottomModalSheet {
             forceRefresh: forceRefresh,
             // 远程获取数据方法
             remoteMethod: remoteMethod,
+            // 是否显示搜索按钮
+            showSearchButton: showSearchButton,
+            // 搜索防抖时间
+            searchDebounceMs: searchDebounceMs,
+            // 初始显示值（编辑回显）
+            initialDisplayValue: initialDisplayValue,
             onChange: (R value, T item) {
               onChange?.call(value, item);
             },

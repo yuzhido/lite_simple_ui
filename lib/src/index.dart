@@ -3,6 +3,8 @@ export 'radio/index.dart';
 export 'switch/index.dart';
 export 'dropdown_choose/index.dart';
 export 'dropdown_choose/controller.dart';
+export 'dropdown_choose/data_helper.dart';
+export 'dropdown_choose/selection_manager.dart';
 export 'tree/index.dart';
 export 'upload/index.dart';
 export 'button/index.dart';
