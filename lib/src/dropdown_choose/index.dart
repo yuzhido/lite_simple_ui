@@ -5,6 +5,7 @@ import 'package:lite_simple_ui/widgets/container_wrapper/index.dart';
 
 import 'controller.dart';
 import 'data_helper.dart';
+import 'display_mode.dart';
 import 'selection_manager.dart';
 
 /// 下拉选择组件 - 支持 Flutter Form 表单验证
@@ -21,12 +22,6 @@ class DropdownChoose<R, T> extends FormField<dynamic> {
   /// 提示信息
   final String? tip;
 
-  /// 选中的值（单选）
-  final R? selectedValue;
-
-  /// 选中的值列表（多选）
-  final List<R>? selectedValues;
-
   /// 从对象中提取 ID（默认提取 id 字段）
   final R Function(T)? valueExtractor;
 
@@ -34,7 +29,10 @@ class DropdownChoose<R, T> extends FormField<dynamic> {
   final String Function(T)? displayText;
 
   /// 选中时的回调
-  final void Function(R, T, bool?)? onChange;
+  /// - [R]: 选中项的 ID
+  /// - [T]: 选中项的完整数据对象
+  /// - [bool]: isSelected - 单选时始终为 true；多选时 true 表示选中，false 表示取消
+  final void Function(R, T, bool)? onChange;
 
   /// 确认时的回调（多选）
   final void Function(List<R>, List<T>)? onConfirm;
@@ -43,8 +41,22 @@ class DropdownChoose<R, T> extends FormField<dynamic> {
   final DropdownChooseController<R>? controller;
 
   /// 初始显示值（用于编辑回显）
-  /// 当只有 ID 时，传入包含 id 和 name 的最小化对象
+  ///
+  /// 当只有 ID 但没有完整对象时，传入一个包含 id 和 name 的最小化对象用于界面回显。
+  /// 注意：这与 [defaultValue] 不同，[defaultValue] 是表单的实际选中值，而此参数仅影响 UI 展示。
   final T? initialDisplayValue;
+
+  /// 是否启用组件
+  final bool enabled;
+
+  /// 显示模式（默认：标签胶囊模式）
+  final DropdownDisplayMode displayMode;
+
+  /// 自定义显示构建器（优先级高于 displayMode）
+  final Widget Function(BuildContext, List<T>)? customDisplayBuilder;
+
+  /// 折叠模式下最大显示的标签数量
+  final int maxVisibleTags;
 
   DropdownChoose({
     required this.options,
@@ -52,35 +64,64 @@ class DropdownChoose<R, T> extends FormField<dynamic> {
     super.key,
     required this.label,
     this.tip,
-    this.selectedValue,
-    this.selectedValues,
+    dynamic defaultValue, // 默认值：单选为 R?，多选为 List<R>?
     this.valueExtractor,
     this.displayText,
     this.onChange,
     this.onConfirm,
     this.controller,
     this.initialDisplayValue,
-    super.validator,
+    this.enabled = true,
+    this.displayMode = DropdownDisplayMode.tags,
+    this.customDisplayBuilder,
+    this.maxVisibleTags = 3,
+    FormFieldValidator<dynamic>? validator,
     super.autovalidateMode = AutovalidateMode.disabled,
   }) : super(
+         initialValue: defaultValue,
+         validator: _buildValidator(validator, isMultiSelect, label),
          builder: (FormFieldState<dynamic> field) {
            return _DropdownChooseField<R, T>(
              options: options,
              isMultiSelect: isMultiSelect,
              label: label,
              tip: tip,
-             selectedValue: selectedValue,
-             selectedValues: selectedValues,
+             defaultValue: defaultValue,
              valueExtractor: valueExtractor,
              displayText: displayText,
              onChange: onChange,
              onConfirm: onConfirm,
              controller: controller,
              initialDisplayValue: initialDisplayValue,
+             enabled: enabled,
+             displayMode: displayMode,
+             customDisplayBuilder: customDisplayBuilder,
+             maxVisibleTags: maxVisibleTags,
              field: field,
            );
          },
        );
+
+  /// 构建验证器：优先使用自定义验证器，否则使用默认验证
+  static FormFieldValidator<dynamic>? _buildValidator(FormFieldValidator<dynamic>? customValidator, bool isMultiSelect, String label) {
+    // 如果提供了自定义验证器，直接使用
+    if (customValidator != null) return customValidator;
+
+    // 返回默认验证器
+    return (value) {
+      if (isMultiSelect) {
+        final list = value as List?;
+        if (list == null || list.isEmpty) {
+          return '请至少选择一个$label';
+        }
+      } else {
+        if (value == null) {
+          return '$label是必选的项';
+        }
+      }
+      return null;
+    };
+  }
 }
 
 /// 内部字段组件 - 与 FormField 集成
@@ -89,14 +130,17 @@ class _DropdownChooseField<R, T> extends StatefulWidget {
   final bool isMultiSelect;
   final String label;
   final String? tip;
-  final R? selectedValue;
-  final List<R>? selectedValues;
+  final dynamic defaultValue;
   final R Function(T)? valueExtractor;
   final String Function(T)? displayText;
-  final void Function(R, T, bool?)? onChange;
+  final void Function(R, T, bool)? onChange;
   final void Function(List<R>, List<T>)? onConfirm;
   final DropdownChooseController<R>? controller;
   final T? initialDisplayValue;
+  final bool enabled;
+  final DropdownDisplayMode displayMode;
+  final Widget Function(BuildContext, List<T>)? customDisplayBuilder;
+  final int maxVisibleTags;
   final FormFieldState<dynamic> field;
 
   const _DropdownChooseField({
@@ -104,14 +148,17 @@ class _DropdownChooseField<R, T> extends StatefulWidget {
     required this.isMultiSelect,
     required this.label,
     this.tip,
-    this.selectedValue,
-    this.selectedValues,
+    this.defaultValue,
     this.valueExtractor,
     this.displayText,
     this.onChange,
     this.onConfirm,
     this.controller,
     this.initialDisplayValue,
+    required this.enabled,
+    required this.displayMode,
+    this.customDisplayBuilder,
+    required this.maxVisibleTags,
     required this.field,
   });
 
@@ -133,8 +180,13 @@ class _DropdownChooseFieldState<R, T> extends State<_DropdownChooseField<R, T>> 
     // 初始化选择管理器
     _selectionManager = SelectionManager<R>(isMultiSelect: widget.isMultiSelect, controller: widget.controller, field: widget.field, onStateChanged: () => setState(() {}));
 
-    // 初始化值
-    _selectionManager.initialize(widget.selectedValue, widget.selectedValues);
+    // 初始化值：从 FormField 的 initialValue 或外部传入的值
+    final value = widget.field.value ?? widget.defaultValue;
+    if (widget.isMultiSelect) {
+      _selectionManager.initialize(null, value as List<R>?);
+    } else {
+      _selectionManager.initialize(value as R?, null);
+    }
 
     // 监听控制器变化
     _selectionManager.addControllerListener(_onControllerChanged);
@@ -162,14 +214,11 @@ class _DropdownChooseFieldState<R, T> extends State<_DropdownChooseField<R, T>> 
 
     // 同步外部传入的值（如果没有使用控制器）
     if (widget.controller == null) {
-      if (oldWidget.selectedValue != widget.selectedValue) {
+      final oldValue = oldWidget.defaultValue;
+      final newValue = widget.defaultValue;
+      if (oldValue != newValue) {
         setState(() {
-          _selectionManager.initialize(widget.selectedValue, widget.selectedValues);
-        });
-      }
-      if (oldWidget.selectedValues != widget.selectedValues) {
-        setState(() {
-          _selectionManager.initialize(widget.selectedValue, widget.selectedValues);
+          _selectionManager.initialize(widget.isMultiSelect ? null : newValue as R?, widget.isMultiSelect ? newValue as List<R>? : null);
         });
       }
     }
@@ -182,44 +231,132 @@ class _DropdownChooseFieldState<R, T> extends State<_DropdownChooseField<R, T>> 
 
   /// 获取显示文本
   Widget _getDisplayText() {
-    final tipInfo = widget.tip ?? '请选择${widget.label}';
-    if (widget.isMultiSelect == true) {
+    // 1. 优先使用自定义构建器
+    if (widget.customDisplayBuilder != null) {
+      final selectedItems = _getSelectedItems();
+      return widget.customDisplayBuilder!(context, selectedItems);
+    }
+
+    // 2. 根据模式分发
+    switch (widget.displayMode) {
+      case DropdownDisplayMode.text:
+        return _buildTextView();
+      case DropdownDisplayMode.tags:
+        return _buildTagsView();
+      case DropdownDisplayMode.compact:
+        return _buildCompactView();
+    }
+  }
+
+  /// 获取当前选中的完整对象列表
+  List<T> _getSelectedItems() {
+    if (widget.isMultiSelect) {
       final ids = _selectionManager.selectedValues ?? [];
-      if (ids.isEmpty) return Text(tipInfo, style: TextStyle(fontSize: 16, color: UiTheme.tipTextFontColor));
-      return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          spacing: 6,
-          children: ids.map((id) {
+      return ids.map((id) => _dataHelper.findOptionById(id)).whereType<T>().toList();
+    } else {
+      final id = _selectionManager.selectedValue;
+      if (id == null) return [];
+      final item = _dataHelper.findOptionById(id);
+      return item != null ? [item] : [];
+    }
+  }
+
+  /// 纯文本模式
+  Widget _buildTextView() {
+    final tipInfo = widget.tip ?? '请选择${widget.label}';
+    final items = _getSelectedItems();
+    if (items.isEmpty) {
+      return Text(tipInfo, style: TextStyle(fontSize: 16, color: Colors.grey.shade600));
+    }
+    final text = items.map((item) => _dataHelper.extractDisplayText(item)).join(', ');
+    return Text(text, style: const TextStyle(fontSize: 16));
+  }
+
+  /// 标签胶囊模式（原有逻辑）
+  Widget _buildTagsView() {
+    final tipInfo = widget.tip ?? '请选择${widget.label}';
+    if (!widget.isMultiSelect) {
+      final item = _getSelectedItems().firstOrNull;
+      if (item == null) return Text(tipInfo, style: TextStyle(fontSize: 16, color: Colors.grey.shade600));
+      return Text(_dataHelper.extractDisplayText(item), style: const TextStyle(fontSize: 16));
+    }
+
+    final ids = _selectionManager.selectedValues ?? [];
+    if (ids.isEmpty) return Text(tipInfo, style: TextStyle(fontSize: 16, color: UiTheme.tipTextFontColor));
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        spacing: 6,
+        children: ids.map((id) {
+          final item = _dataHelper.findOptionById(id);
+          final displayText = item != null ? _dataHelper.extractDisplayText(item) : id.toString();
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(color: const Color(0xFFE8E0FF), borderRadius: BorderRadius.circular(15)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              spacing: 2,
+              children: [
+                Text(
+                  displayText,
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF6B21A8), fontWeight: FontWeight.w500),
+                ),
+                const Icon(Icons.close, size: 16, color: Color(0xFF6B21A8)),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  /// 折叠模式 (+X 更多)
+  Widget _buildCompactView() {
+    final tipInfo = widget.tip ?? '请选择${widget.label}';
+    if (!widget.isMultiSelect) {
+      return _buildTextView(); // 单选时折叠模式退化为文本模式
+    }
+
+    final ids = _selectionManager.selectedValues ?? [];
+    if (ids.isEmpty) return Text(tipInfo, style: TextStyle(fontSize: 16, color: UiTheme.tipTextFontColor));
+
+    final visibleIds = ids.take(widget.maxVisibleTags).toList();
+    final remainingCount = ids.length - widget.maxVisibleTags;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        spacing: 6,
+        children: [
+          ...visibleIds.map((id) {
             final item = _dataHelper.findOptionById(id);
             final displayText = item != null ? _dataHelper.extractDisplayText(item) : id.toString();
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(color: const Color(0xFFE8E0FF), borderRadius: BorderRadius.circular(15)),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                spacing: 2,
-                children: [
-                  Text(
-                    displayText,
-                    style: const TextStyle(fontSize: 14, color: Color(0xFF6B21A8), fontWeight: FontWeight.w500),
-                  ),
-                  const Icon(Icons.close, size: 16, color: Color(0xFF6B21A8)),
-                ],
+              child: Text(
+                displayText,
+                style: const TextStyle(fontSize: 14, color: Color(0xFF6B21A8), fontWeight: FontWeight.w500),
               ),
             );
-          }).toList(),
-        ),
-      );
-    } else {
-      if (_selectionManager.selectedValue == null) return Text(tipInfo, style: TextStyle(fontSize: 16, color: Colors.grey.shade600));
-      final item = _dataHelper.findOptionById(_selectionManager.selectedValue as R);
-      return Text(item != null ? _dataHelper.extractDisplayText(item) : _selectionManager.selectedValue.toString());
-    }
+          }),
+          if (remainingCount > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(15)),
+              child: Text(
+                '+$remainingCount',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade700, fontWeight: FontWeight.w500),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
-  /// 点击显示弹窗-显示选中值
-  void onShowChoose() async {
+  /// 点击显示弹窗 - 展示备选列表或当前选中状态
+  void onChoose() async {
     final res = await BottomModalSheet.show<R, T>(
       context,
       title: widget.label,
@@ -229,11 +366,14 @@ class _DropdownChooseFieldState<R, T> extends State<_DropdownChooseField<R, T>> 
       displayText: widget.displayText,
       valueExtractor: widget.valueExtractor,
       initialDisplayValue: widget.initialDisplayValue,
-      onChange: (R r, T data) {
-        setState(() {
-          _selectionManager.setSingleValue(r);
-        });
-        widget.onChange?.call(r, data, null);
+      onChange: (R r, T data, bool isSelected) {
+        // 单选时立即更新内部状态并关闭弹窗；多选时仅触发回调，由 onConfirm 统一处理
+        if (!widget.isMultiSelect) {
+          setState(() {
+            _selectionManager.setSingleValue(r);
+          });
+        }
+        widget.onChange?.call(r, data, isSelected);
       },
       onConfirm: (List<R> r, List<T> data) {
         setState(() {
@@ -266,8 +406,8 @@ class _DropdownChooseFieldState<R, T> extends State<_DropdownChooseField<R, T>> 
       selectedValues: _selectionManager.selectedValues,
       displayText: _getDisplayText(),
       onClear: onClear,
-      onTap: onShowChoose,
-      // 传递错误信息
+      onTap: widget.enabled ? onChoose : null,
+      enabled: widget.enabled,
       errorText: hasError ? widget.field.errorText : null,
       hasError: hasError,
     );

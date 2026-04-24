@@ -50,7 +50,7 @@ class BottomModalSheet {
     double? height,
     Color? backgroundColor,
     VoidCallback? onDismissed,
-    Function(R, T)? onChange,
+    Function(R, T, bool)? onChange, // 第三个参数：isSelected
     Function(List<R>, List<T>)? onConfirm,
   }) {
     // 默认显示文本提取函数：尝试访问 name 字段
@@ -110,8 +110,8 @@ class BottomModalSheet {
             searchDebounceMs: searchDebounceMs,
             // 初始显示值（编辑回显）
             initialDisplayValue: initialDisplayValue,
-            onChange: (R value, T item) {
-              onChange?.call(value, item);
+            onChange: (R value, T item, bool isSelected) {
+              onChange?.call(value, item, isSelected);
             },
             onConfirm: (List<R> value, List<T> items) {
               onConfirm?.call(value, items);

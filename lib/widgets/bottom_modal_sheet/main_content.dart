@@ -24,7 +24,7 @@ class MainContent<R, T> extends StatefulWidget {
   final int searchDebounceMs;
   final T? initialDisplayValue;
 
-  final Function(R, T)? onChange;
+  final Function(R, T, bool)? onChange; // 第三个参数：isSelected
   final Function(List<R>, List<T>)? onConfirm;
 
   const MainContent({

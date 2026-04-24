@@ -3,8 +3,16 @@ class DropdownDataHelper<R, T> {
   final List<T> options;
   final R Function(T)? valueExtractor;
   final String Function(T)? displayText;
+  late final Map<R, T> _cacheMap;
 
-  DropdownDataHelper({required this.options, this.valueExtractor, this.displayText});
+  DropdownDataHelper({required this.options, this.valueExtractor, this.displayText}) {
+    // 初始化时构建缓存 Map，提高查找效率
+    _cacheMap = {};
+    for (var item in options) {
+      final id = extractValue(item);
+      _cacheMap[id] = item;
+    }
+  }
 
   /// 从对象中提取 ID
   R extractValue(T item) {
@@ -20,11 +28,8 @@ class DropdownDataHelper<R, T> {
     return dynamicObj.name?.toString() ?? item.toString();
   }
 
-  /// 通过 ID 在 options 中查找对象
+  /// 通过 ID 在 options 中查找对象 (O(1) 复杂度)
   T? findOptionById(R id) {
-    for (var item in options) {
-      if (extractValue(item) == id) return item;
-    }
-    return null;
+    return _cacheMap[id];
   }
 }

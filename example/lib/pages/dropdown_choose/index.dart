@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lite_simple_ui/lite_simple_ui.dart';
+import 'package:lite_simple_ui/src/dropdown_choose/display_mode.dart';
 
 class DropdownChoosePage extends StatefulWidget {
   const DropdownChoosePage({super.key});
@@ -29,20 +30,12 @@ class _DropdownChoosePageState extends State<DropdownChoosePage> {
   // 表单相关变量
   final _formKey = GlobalKey<FormState>();
 
-  // 控制器
-  final _userController = DropdownChooseController<int>();
-  final _multiUserController = DropdownChooseController<int>();
-
-  // 表单字段值
-  int? _selectedUserId;
-  List<int>? _selectedUserIds;
-  int? _customDisplayUserId;
-  List<int>? _multiSelectUserIds;
+  // 回调示例状态
+  int? _singleUserId;
+  List<int>? _multiUserIds;
 
   @override
   void dispose() {
-    _userController.dispose();
-    _multiUserController.dispose();
     super.dispose();
   }
 
@@ -57,113 +50,103 @@ class _DropdownChoosePageState extends State<DropdownChoosePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('单选模式:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text('单选模式 - onChange回调示例:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               DropdownChoose<int, UserInfo>(
                 options: users,
                 label: '用户',
-                selectedValue: _selectedUserId,
-                validator: (value) {
-                  if (value == null) {
-                    return '请选择用户';
-                  }
-                  return null;
-                },
-                onChange: (r, data, bool? isSelected) {
+                defaultValue: _singleUserId,
+                onChange: (id, user, isSelected) {
                   setState(() {
-                    _selectedUserId = r;
+                    _singleUserId = id;
                   });
-                  print('选中这是最后从的结果: $r, ${data.name}');
-                  print('是否选中$isSelected');
+                  print('✅ 单选onChange触发 - ID: $id, 姓名: ${user.name}, 年龄: ${user.age}, isSelected: $isSelected');
                 },
               ),
+              if (_singleUserId != null)
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Text('已选择: ${users.firstWhere((u) => u.id == _singleUserId).name}', style: TextStyle(color: Colors.green.shade700, fontSize: 12)),
+                ),
               const SizedBox(height: 20),
-              const Text('单选回显模式:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              DropdownChoose<int, UserInfo>(
-                options: users,
-                selectedValue: _selectedUserId ?? 25555555555121223,
-                label: '用户（回显）',
-                validator: (value) {
-                  if (value == null) {
-                    return '请选择用户';
-                  }
-                  return null;
-                },
-                onChange: (r, data, bool? isSelected) {
-                  setState(() {
-                    _selectedUserId = r;
-                  });
-                },
-              ),
-              const SizedBox(height: 20),
-              const Text('自定义显示文本:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              DropdownChoose<int, UserInfo>(
-                options: users,
-                selectedValue: _customDisplayUserId ?? 25555555555121223,
-                displayText: (user) => '${user.name}(${user.age}岁)',
-                label: '自定义显示',
-                validator: (value) {
-                  if (value == null) {
-                    return '请选择用户';
-                  }
-                  return null;
-                },
-                onChange: (r, data, bool? isSelected) {
-                  setState(() {
-                    _customDisplayUserId = r;
-                  });
-                },
-              ),
-              const SizedBox(height: 20),
-              const Text('多选模式:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text('多选模式 - onChange + onConfirm双回调示例:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               DropdownChoose<int, UserInfo>(
                 options: users,
                 isMultiSelect: true,
-                selectedValues: _selectedUserIds,
-                label: '多选用户',
-                validator: (value) {
-                  final list = value as List?;
-                  if (list == null || list.isEmpty) {
-                    return '请至少选择一个用户';
-                  }
-                  return null;
+                label: '用户',
+                tip: '请选择多个用户',
+                defaultValue: _multiUserIds,
+                onChange: (id, user, isSelected) {
+                  print('🔄 多选onChange触发 - ID: $id, 姓名: ${user.name}, isSelected: $isSelected');
                 },
-                onConfirm: (r, data) {
+                onConfirm: (ids, userList) {
                   setState(() {
-                    _selectedUserIds = r;
+                    _multiUserIds = ids;
                   });
-                  print('多选最后666999确认的结果: $r, $data');
-                },
-                onChange: (r, data, bool? isSelected) {
-                  print('选中这是最后从的结果: $r, ${data.name}');
-                  print('是否选中$isSelected');
+                  print('✅ 多选onConfirm触发 - 选中数量: ${userList.length}');
+                  print('   ID列表: $ids');
+                  print('   用户列表: ${userList.map((u) => u.name).join(", ")}');
                 },
               ),
+              if (_multiUserIds != null && _multiUserIds!.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '已确认选择 ${_multiUserIds!.length} 个用户:',
+                        style: TextStyle(color: Colors.blue.shade700, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(_multiUserIds!.map((id) => users.firstWhere((u) => u.id == id).name).join(', '), style: TextStyle(color: Colors.blue.shade600, fontSize: 12)),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 20),
-              const Text('多选回显模式:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text('多选模式 - 纯文本显示:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              DropdownChoose<int, UserInfo>(options: users, isMultiSelect: true, label: '用户', displayMode: DropdownDisplayMode.text),
+              const SizedBox(height: 20),
+              const Text('多选模式 - 折叠显示 (+N更多):', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              DropdownChoose<int, UserInfo>(options: users, isMultiSelect: true, label: '用户', displayMode: DropdownDisplayMode.compact, maxVisibleTags: 2),
+              const SizedBox(height: 20),
+              const Text('多选模式 - 自定义显示 (头像示例):', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               DropdownChoose<int, UserInfo>(
                 options: users,
                 isMultiSelect: true,
-                selectedValues: _multiSelectUserIds ?? [25555555555121223, 65555555555121223],
-                label: '多选用户（回显）',
-                validator: (value) {
-                  final list = value as List?;
-                  if (list == null || list.isEmpty) {
-                    return '请至少选择一个用户';
-                  }
-                  return null;
-                },
-                onConfirm: (r, data) {
-                  setState(() {
-                    _multiSelectUserIds = r;
-                  });
+                label: '用户',
+                customDisplayBuilder: (context, selectedItems) {
+                  if (selectedItems.isEmpty) return const Text('请选择用户', style: TextStyle(color: Colors.grey));
+                  return Wrap(
+                    spacing: 4,
+                    children: selectedItems
+                        .map(
+                          (user) => Chip(
+                            avatar: CircleAvatar(backgroundColor: Colors.blue.shade100, child: Text(user.name[0])),
+                            label: Text(user.name, style: const TextStyle(fontSize: 12)),
+                          ),
+                        )
+                        .toList(),
+                  );
                 },
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 20),
               // 表单操作按钮
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -175,10 +158,8 @@ class _DropdownChoosePageState extends State<DropdownChoosePage> {
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('表单验证通过'), backgroundColor: Colors.green));
 
                         // 打印当前选中的值
-                        print('单选用户ID: $_selectedUserId');
-                        print('多选用户IDs: $_selectedUserIds');
-                        print('自定义显示用户ID: $_customDisplayUserId');
-                        print('多选回显用户IDs: $_multiSelectUserIds');
+                        print('单选用户ID: $_singleUserId');
+                        print('多选用户IDs: $_multiUserIds');
                       } else {
                         // 表单验证失败
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请完善表单信息'), backgroundColor: Colors.red));
@@ -191,85 +172,11 @@ class _DropdownChoosePageState extends State<DropdownChoosePage> {
                       // 重置表单
                       _formKey.currentState!.reset();
                       setState(() {
-                        _selectedUserId = null;
-                        _selectedUserIds = null;
-                        _customDisplayUserId = null;
-                        _multiSelectUserIds = null;
+                        _singleUserId = null;
+                        _multiUserIds = null;
                       });
                     },
                     child: const Text('重置'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 30),
-              const Text('控制器示例:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              DropdownChoose<int, UserInfo>(
-                options: users,
-                label: '用户（控制器）',
-                controller: _userController,
-                validator: (value) {
-                  if (value == null) return '请选择用户';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-              DropdownChoose<int, UserInfo>(
-                options: users,
-                isMultiSelect: true,
-                label: '多选用户（控制器）',
-                controller: _multiUserController,
-                validator: (value) {
-                  final list = value as List?;
-                  if (list == null || list.isEmpty) return '请至少选择一个用户';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-              // 控制器操作按钮
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      // 设置值
-                      _userController.setValue(25555555555121223);
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已设置值为: 李四'), backgroundColor: Colors.green));
-                    },
-                    child: const Text('设置值'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      // 获取值
-                      final value = _userController.value;
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('当前值: $value'), backgroundColor: Colors.blue));
-                    },
-                    child: const Text('获取值'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      // 清空值
-                      _userController.clear();
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已清空'), backgroundColor: Colors.orange));
-                    },
-                    child: const Text('清空'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      // 设置多选值
-                      _multiUserController.setValues([25555555555121223, 65555555555121223]);
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已设置多选值'), backgroundColor: Colors.green));
-                    },
-                    child: const Text('设置多选值'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      // 获取多选值
-                      final values = _multiUserController.values;
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('当前多选值: $values'), backgroundColor: Colors.blue));
-                    },
-                    child: const Text('获取多选值'),
                   ),
                 ],
               ),

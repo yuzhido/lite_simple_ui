@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:lite_simple_ui/config/ui_theme.dart';
 import 'package:lite_simple_ui/model/index.dart';
 
+import 'widgets/prefix_icon_label.dart';
+import 'widgets/suffix_clear_icon.dart';
+
 class ContainerWrapper<R> extends StatefulWidget {
   final String label;
   final String? tip;
   final R? selectedValue;
-  final Widget? displayText;
   final List<R>? selectedValues;
   final bool required;
+  final Widget? displayText;
   final VoidCallback? onTap;
   // 容器输入模式-输入/选择/自定义
   final InputMode inputMode;
@@ -21,6 +24,9 @@ class ContainerWrapper<R> extends StatefulWidget {
 
   /// 是否有验证错误
   final bool hasError;
+
+  /// 是否启用组件
+  final bool enabled;
 
   const ContainerWrapper({
     required this.label,
@@ -35,6 +41,7 @@ class ContainerWrapper<R> extends StatefulWidget {
     this.inputMode = InputMode.select,
     this.errorText,
     this.hasError = false,
+    this.enabled = true,
   });
   @override
   State<ContainerWrapper> createState() => _ContainerWrapperState();
@@ -71,9 +78,10 @@ class _ContainerWrapperState<R> extends State<ContainerWrapper<R>> {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: widget.onTap,
+      onTap: widget.enabled ? widget.onTap : null,
       child: Container(
         decoration: BoxDecoration(
+          color: widget.enabled ? Colors.white : Colors.grey.shade100,
           border: Border.all(color: widget.hasError ? Colors.red : UiTheme.borderColor, width: 1),
           borderRadius: BorderRadius.circular(5),
         ),
@@ -81,16 +89,7 @@ class _ContainerWrapperState<R> extends State<ContainerWrapper<R>> {
         child: Row(
           spacing: 5,
           children: [
-            // 前面图标
-            Icon(Icons.branding_watermark_outlined, size: 20, color: widget.hasError ? Colors.red : UiTheme.primaryColor),
-            // 必填标识
-            if (widget.required)
-              Text(
-                '*',
-                style: TextStyle(color: UiTheme.errorColor, fontSize: 16, fontWeight: FontWeight.w500),
-              ),
-            // 标签
-            Text(widget.label, style: TextStyle(fontSize: 16)),
+            PrefixIconLabel(label: widget.label),
             // 选中值
             if (widget.selectedValue != null || (widget.selectedValues?.isNotEmpty ?? false))
               Expanded(child: widget.displayText ?? SizedBox.shrink())
@@ -104,28 +103,11 @@ class _ContainerWrapperState<R> extends State<ContainerWrapper<R>> {
               Expanded(
                 child: Text(tipInfo, style: TextStyle(fontSize: 16, color: Colors.grey.shade600)),
               ),
-
             // 清空按钮
-            InkWell(
+            SuffixClearIcon(
               onTap: (widget.selectedValue != null || (widget.selectedValues?.isNotEmpty ?? false)) ? widget.onClear : widget.onTap,
-              borderRadius: BorderRadius.circular(6),
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: (widget.selectedValue != null || (widget.selectedValues?.isNotEmpty ?? false)) ? Colors.red.shade50 : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Icon(
-                  widget.selectedValue != null || (widget.selectedValues?.isNotEmpty ?? false)
-                      ? Icons.close
-                      : isExpanded
-                      ? Icons.keyboard_arrow_down_rounded
-                      : Icons.keyboard_arrow_right_rounded,
-                  size: 20,
-                  color: widget.selectedValue != null || (widget.selectedValues?.isNotEmpty ?? false) ? Colors.red.shade400 : Colors.blue.shade600,
-                  weight: 2.5,
-                ),
-              ),
+              selectedValue: widget.selectedValue,
+              selectedValues: widget.selectedValues,
             ),
           ],
         ),

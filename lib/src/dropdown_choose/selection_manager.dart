@@ -17,6 +17,9 @@ class SelectionManager<R> {
   List<R>? get selectedValues => _selectedValues;
 
   /// 初始化值
+  ///
+  /// 优先级规则：如果提供了 [controller]，则忽略外部传入的 [initialValue] / [initialValues]，
+  /// 直接以控制器的当前值为准。
   void initialize(R? initialValue, List<R>? initialValues) {
     if (controller != null) {
       _selectedValue = isMultiSelect ? null : controller!.value;
@@ -67,11 +70,15 @@ class SelectionManager<R> {
 
   /// 添加控制器监听
   void addControllerListener(VoidCallback listener) {
-    controller?.addListener(listener);
+    if (controller != null) {
+      controller!.addListener(listener);
+    }
   }
 
   /// 移除控制器监听
   void removeControllerListener(VoidCallback listener) {
-    controller?.removeListener(listener);
+    if (controller != null) {
+      controller!.removeListener(listener);
+    }
   }
 }

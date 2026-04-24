@@ -6,7 +6,7 @@ class ContentShow<R, T> extends StatefulWidget {
   final R Function(T) valueExtractor;
   final dynamic defaultValue;
   final bool isMultiSelect;
-  final Function(R, T)? onChange;
+  final Function(R, T, bool)? onChange; // 第三个参数：isSelected
   final Function(List<R>, List<T>)? onConfirm;
 
   const ContentShow({
@@ -47,17 +47,22 @@ class _ContentShowState<R, T> extends State<ContentShow<R, T>> {
 
   void _onItemSelected(int index, T item) {
     final id = widget.valueExtractor(item);
-    widget.onChange?.call(id, item);
+
     if (widget.isMultiSelect) {
+      // 多选：判断是选中还是取消
+      final isSelected = !_selectedIds.contains(id);
       setState(() {
-        if (_selectedIds.contains(id)) {
-          _selectedIds.remove(id);
-        } else {
+        if (isSelected) {
           _selectedIds.add(id);
+        } else {
+          _selectedIds.remove(id);
         }
       });
+      widget.onChange?.call(id, item, isSelected);
     } else {
+      // 单选：始终为选中状态
       Navigator.of(context).pop(id);
+      widget.onChange?.call(id, item, true);
     }
   }
 
